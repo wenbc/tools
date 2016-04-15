@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"runtime"
 	"strings"
 	"time"
@@ -209,11 +210,23 @@ func getGamePortString(gameName string) (string, error) {
 			log.Fatal("[ERROR] getGamePortString", err)
 		}
 	}()
-	gameConfigPath := gameDir + "/" + gameName + "/" + gameConfigfile
+	gameConfigPath := path.Join(path.Join(gameDir, gameName), gameConfigfile)
+	count := 0
+	for count < 6 {
+		isExistsFile := IsExistsFile(gameConfigPath)
+		if isExistsFile {
+			break
+		}
+		time.Sleep(10 * time.Second)
+		log.Println("[INFO] getGamePortString ", gameConfigPath, " is not exists!")
+		count++
+	}
+
 	fd, err := ioutil.ReadFile(gameConfigPath)
 	if err != nil {
 		return "", err
 	}
+	log.Println("[INFO] getGamePortString ", gameConfigPath, " is exists!")
 	for _, line := range strings.Split(string(fd), "\n") {
 		if strings.HasPrefix(line, gamePortFlag) {
 			return strings.Split(line, gamePortSeq)[1], nil
@@ -285,4 +298,12 @@ func IsExistsItems(items []zabbix.Item, hostid, itemKey string) bool {
 		}
 	}
 	return false
+}
+func IsExistsFile(filename string) bool {
+	_, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	} else {
+		return true
+	}
 }
